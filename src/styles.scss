@@ -43,18 +43,6 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   height: 100%;
 }
 
-.modal-scroll-container {
-  flex: 1 1 auto;
-  max-height: 70vh;
-  overflow-y: auto;
-  margin-bottom: 16px;
-  min-height: 0;
-}
-
-.mat-dialog-content {
-  padding: 0 !important;
-}
-
 .error-detail {
   margin: 8px 0;
   padding: 8px;
