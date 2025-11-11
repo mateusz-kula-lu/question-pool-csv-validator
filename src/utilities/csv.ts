@@ -5,7 +5,8 @@ export interface CsvFieldValidationError {
 }
 
 /**
- * Parses a CSV line and returns both the parsed values and the original field substrings (with quotes preserved).
+ * Robust RFC 4180-compliant CSV line parser.
+ * Returns parsed values, original field substrings, and error info.
  */
 export function parseCsvLineWithErrors(
   line: string,
@@ -20,20 +21,46 @@ export function parseCsvLineWithErrors(
   const quotedFields: boolean[] = [];
   const parseErrors: { error: string; field: number }[] = [];
   const originalFields: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  let fieldQuoted = false;
+
   let i = 0;
   let fieldIndex = 0;
+  let inQuotes = false;
+  let fieldQuoted = false;
+  let current = '';
   let fieldStart = 0;
 
-  while (i < line.length) {
-    const char = line[i];
+  while (i <= line.length) {
+    let char = line[i];
+    if (i === line.length || (char === ',' && !inQuotes)) {
+      // End of field
+      let originalField = line.slice(fieldStart, i);
+      originalFields.push(originalField);
+
+      // Unescape quoted field if needed
+      let value = current;
+      if (fieldQuoted) {
+        // Remove surrounding quotes and unescape double quotes
+        if (value.startsWith('"') && value.endsWith('"')) {
+          value = value.slice(1, -1).replace(/""/g, '"');
+        }
+      }
+      result.push(value);
+      quotedFields.push(fieldQuoted);
+
+      // Reset for next field
+      current = '';
+      fieldQuoted = false;
+      inQuotes = false;
+      fieldStart = i + 1;
+      fieldIndex++;
+      i++;
+      continue;
+    }
+
     if (char === '"') {
       if (!inQuotes && current === '') {
         inQuotes = true;
         fieldQuoted = true;
-        fieldStart = i; // mark the start of quoted field
       } else if (inQuotes && line[i + 1] === '"') {
         current += '"';
         i++; // skip escaped quote
@@ -47,41 +74,21 @@ export function parseCsvLineWithErrors(
           field: fieldIndex + 1
         });
       }
-    } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      quotedFields.push(fieldQuoted);
-      // Save the original field substring
-      const fieldEnd = i;
-      if (fieldQuoted) {
-        // Include quotes
-        originalFields.push(line.slice(fieldStart, fieldEnd));
-      } else {
-        originalFields.push(line.slice(fieldEnd - current.length, fieldEnd));
-      }
-      current = '';
-      fieldQuoted = false;
-      fieldIndex++;
-      fieldStart = i + 1;
     } else {
       current += char;
     }
     i++;
   }
+
+  // Check for unclosed quoted field
   if (inQuotes) {
-    const fieldName = header?.[fieldIndex] ?? `#${fieldIndex + 1}`;
+    const fieldName = header?.[fieldIndex - 1] ?? `#${fieldIndex}`;
     parseErrors.push({
       error: `[${fieldName}] Unclosed quoted field`,
-      field: fieldIndex + 1
+      field: fieldIndex
     });
   }
-  result.push(current);
-  quotedFields.push(fieldQuoted);
-  // Save the last field's original substring
-  if (fieldQuoted) {
-    originalFields.push(line.slice(fieldStart));
-  } else {
-    originalFields.push(line.slice(line.length - current.length));
-  }
+
   return { row: result, parseErrors, quotedFields, originalFields };
 }
 
