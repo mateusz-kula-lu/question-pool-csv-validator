@@ -1,0 +1,74 @@
+@if (!showResults) {
+  <div 
+    class="file-drop-zone"
+    (drop)="onFileDrop($event)"
+    (dragover)="onDragOver($event)"
+  >
+    <input 
+      type="file" 
+      id="fileInput" 
+      (change)="onFileSelected($event)" 
+      hidden
+    >
+    <button 
+      mat-icon-button 
+      color="primary" 
+      (click)="fileInput.click()" 
+      aria-label="Upload file"
+      style="background: transparent; box-shadow: none;"
+    >
+      <mat-icon style="font-size: 96px; width: 96px; height: 96px; display: block; margin: 0 auto;">description</mat-icon>
+    </button>
+    <div class="drop-text">Drag & Drop your CSV file here or click the icon</div>
+  </div>
+  <input #fileInput type="file" (change)="onFileSelected($event)" hidden>
+} @else {
+  <div class="results-view">
+    <div class="results-bar">
+      <span>CSV Validation Results</span>
+      <button mat-icon-button class="close-btn" (click)="closeResults()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+    <div class="results-table-container">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Line #</th>
+            <th>Issues</th>
+            @for (fieldName of header; track fieldName) {
+              <th>{{ fieldName }}</th>
+            }
+            <th class="raw-header">Raw</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of csvLines.slice(1); let i = $index; track i) {
+            @if (getIssuesForLine(i + 2).length > 0) {
+              <tr>
+                <td>{{ i + 2 }}</td>
+                <td>
+                  <ul>
+                    @for (issue of getIssuesForLine(i + 2); track issue) {
+                      <li>
+                        <span class="field-error">{{ issue.error }}</span>
+                      </li>
+                    }
+                  </ul>
+                </td>
+                @for (fieldName of header; let j = $index; track j) {
+                  <td [class.field-error-cell]="hasFieldError(i + 2, j)">
+                    <pre class="field-pre">{{ originalFieldsRows[i + 1][j] }}</pre>
+                  </td>
+                }
+                <td class="raw-cell-container">
+                  <pre class="raw-cell">{{ line }}</pre>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
