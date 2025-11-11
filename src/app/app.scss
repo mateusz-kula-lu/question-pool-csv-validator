@@ -168,3 +168,12 @@ mat-icon {
   word-break: break-all;
   margin: 0;
 }
+
+.upload-btn-tall {
+  min-height: 200px;
+  font-size: 1.2em;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

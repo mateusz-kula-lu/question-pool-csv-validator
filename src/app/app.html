@@ -10,15 +10,11 @@
       (change)="onFileSelected($event)" 
       hidden
     >
-    <button 
-      mat-icon-button 
-      color="primary" 
-      (click)="fileInput.click()" 
-      aria-label="Upload file"
-      style="background: transparent; box-shadow: none;"
-    >
-      <mat-icon style="font-size: 96px; width: 96px; height: 96px; display: block; margin: 0 auto;">description</mat-icon>
+    <button matFab extended (click)="fileInput.click()" color="primary" aria-label="Upload file"  class="upload-btn-tall">
+      <mat-icon>upload</mat-icon>
+      Upload CSV file
     </button>
+    
     <div class="drop-text">Drag & Drop your CSV file here or click the icon</div>
   </div>
   <input #fileInput type="file" (change)="onFileSelected($event)" hidden>
