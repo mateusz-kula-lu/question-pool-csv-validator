@@ -98,6 +98,7 @@ export function validateCsvString(csvContent: string): CsvFieldValidationError[]
   let expectedNumFields: number | null = null;
   let headerChecked = false;
   let header: string[] = [];
+  let correctFieldIndexes: number[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -106,11 +107,14 @@ export function validateCsvString(csvContent: string): CsvFieldValidationError[]
     // Pass header to parser for error context
     const { row, parseErrors, quotedFields } = parseCsvLineWithErrors(line, header);
 
-    // Store header for field names
+    // Store header for field names and find correct{x} fields
     if (!headerChecked) {
       expectedNumFields = row.length;
       header = row;
       headerChecked = true;
+      correctFieldIndexes = header
+        .map((name, idx) => /^correct\d+$/i.test(name.trim()) ? idx : -1)
+        .filter(idx => idx !== -1);
     } else if (row.length !== expectedNumFields) {
       errors.push({
         line: i + 1,
@@ -147,6 +151,30 @@ export function validateCsvString(csvContent: string): CsvFieldValidationError[]
           line: i + 1,
           field: j + 1,
           error: `[${fieldName}] Field exceeds maximum length of 1000 characters (actual: ${field.length})`
+        });
+      }
+    }
+
+    // --- Custom validation for correct{x} fields ---
+    if (headerChecked && correctFieldIndexes.length > 0 && i > 0) {
+      let hasTrue = false;
+      for (const idx of correctFieldIndexes) {
+        const val = (row[idx] ?? '').trim().toUpperCase();
+        const fieldName = header[idx];
+        if (val !== '' && val !== 'TRUE' && val !== 'FALSE') {
+          errors.push({
+            line: i + 1,
+            field: idx + 1,
+            error: `[${fieldName}] Value must be either TRUE or FALSE`
+          });
+        }
+        if (val === 'TRUE') hasTrue = true;
+      }
+      if (!hasTrue) {
+        errors.push({
+          line: i + 1,
+          field: 0,
+          error: `[Row] At least one correct{x} field must be TRUE`
         });
       }
     }
