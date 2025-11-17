@@ -99,6 +99,8 @@ export function validateCsvString(csvContent: string): CsvFieldValidationError[]
   let headerChecked = false;
   let header: string[] = [];
   let correctFieldIndexes: number[] = [];
+  let choiceFieldMap: Record<number, number> = {}; // x -> index of choice{x}
+  let correctFieldMap: Record<number, number> = {}; // x -> index of correct{x}
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -107,7 +109,7 @@ export function validateCsvString(csvContent: string): CsvFieldValidationError[]
     // Pass header to parser for error context
     const { row, parseErrors, quotedFields } = parseCsvLineWithErrors(line, header);
 
-    // Store header for field names and find correct{x} fields
+    // Store header for field names and find correct{x} and choice{x} fields
     if (!headerChecked) {
       expectedNumFields = row.length;
       header = row;
@@ -115,6 +117,20 @@ export function validateCsvString(csvContent: string): CsvFieldValidationError[]
       correctFieldIndexes = header
         .map((name, idx) => /^correct\d+$/i.test(name.trim()) ? idx : -1)
         .filter(idx => idx !== -1);
+
+      // Build maps for choice{x} and correct{x}
+      choiceFieldMap = {};
+      correctFieldMap = {};
+      header.forEach((name, idx) => {
+        const matchChoice = name.trim().match(/^choice(\d+)$/i);
+        if (matchChoice) {
+          choiceFieldMap[parseInt(matchChoice[1], 10)] = idx;
+        }
+        const matchCorrect = name.trim().match(/^correct(\d+)$/i);
+        if (matchCorrect) {
+          correctFieldMap[parseInt(matchCorrect[1], 10)] = idx;
+        }
+      });
     } else if (row.length !== expectedNumFields) {
       errors.push({
         line: i + 1,
@@ -176,6 +192,48 @@ export function validateCsvString(csvContent: string): CsvFieldValidationError[]
           field: 0,
           error: `[Row] At least one correct{x} field must be TRUE`
         });
+      }
+    }
+
+    // --- Validation: for every non-empty choice{x}, correct{x} must also be non-empty ---
+    if (headerChecked && i > 0) {
+      for (const xStr in choiceFieldMap) {
+        const x = parseInt(xStr, 10);
+        const choiceIdx = choiceFieldMap[x];
+        const correctIdx = correctFieldMap[x];
+        if (
+          typeof choiceIdx === 'number' &&
+          typeof correctIdx === 'number' &&
+          (row[choiceIdx] ?? '').trim() !== '' &&
+          (row[correctIdx] ?? '').trim() === ''
+        ) {
+          errors.push({
+            line: i + 1,
+            field: correctIdx + 1,
+            error: `[correct${x}] Field must not be empty when choice${x} is not empty`
+          });
+        }
+      }
+    }
+
+    // --- Validation: for every non-empty correct{x}, choice{x} must also be non-empty ---
+    if (headerChecked && i > 0) {
+      for (const xStr in correctFieldMap) {
+        const x = parseInt(xStr, 10);
+        const correctIdx = correctFieldMap[x];
+        const choiceIdx = choiceFieldMap[x];
+        if (
+          typeof correctIdx === 'number' &&
+          typeof choiceIdx === 'number' &&
+          (row[correctIdx] ?? '').trim() !== '' &&
+          (row[choiceIdx] ?? '').trim() === ''
+        ) {
+          errors.push({
+            line: i + 1,
+            field: choiceIdx + 1,
+            error: `[choice${x}] Field must not be empty when correct${x} is not empty`
+          });
+        }
       }
     }
 
