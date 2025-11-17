@@ -26,8 +26,24 @@
         <mat-icon style="color: navy;" (click)="closeResults()">reply all</mat-icon>
       </div>
     </div>
-    <div class="results-table-container">
-      <table class="results-table">
+    
+
+      <div class="results-table-container">
+        @if(hasErrors) {
+      <div class="error-summary">
+        <mat-icon [ngStyle]="{'color':'red'}">error</mat-icon>
+        <span>Validation completed with errors. Please review the issues below.</span>
+      </div>
+    } @else {
+      <div class="success-summary">
+        <mat-icon [ngStyle]="{'color':'green'}">check_circle</mat-icon>
+        <span>Validation completed successfully. No issues found!</span>
+      </div>
+    }
+
+    @if(hasErrors) {
+    
+        <table class="results-table">
         <thead>
           <tr>
             <th>Line #</th>
@@ -65,6 +81,8 @@
           }
         </tbody>
       </table>
-    </div>
+    }
+      </div>
+
   </div>
 }

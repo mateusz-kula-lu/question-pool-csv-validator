@@ -20,6 +20,7 @@ export class App {
   header: string[] = [];
   parsedRows: string[][] = [];
   originalFieldsRows: string[][] = [];
+  hasErrors = false;
 
   // Soft, transparent colors for up to 10 fields
   private fieldColors = [
@@ -48,6 +49,7 @@ export class App {
       parseCsvLineWithErrors(line, this.header).originalFields
     );
     this.showResults = true;
+    this.hasErrors = this.results.filter(r => r.error).length > 0
   }
 
   onFileSelected(event: Event): void {
@@ -92,6 +94,7 @@ export class App {
     this.header = [];
     this.parsedRows = [];
     this.originalFieldsRows = [];
+    this.hasErrors = false;
   }
 
   getIssuesForLine(line: number): CsvFieldValidationError[] {
