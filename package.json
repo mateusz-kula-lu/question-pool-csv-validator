@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "github-build": "ng build --configuration production --base-href 'https://mateusz-kula-lu.github.io/question_pool_validator/'"
   },
   "prettier": {
     "printWidth": 100,
