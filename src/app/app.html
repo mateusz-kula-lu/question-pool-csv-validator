@@ -62,7 +62,7 @@
               @for (fieldName of header; track fieldName) {
                 <th>{{ fieldName }}</th>
               }
-              <th class="raw-header">Raw</th>
+              <th class="raw-header">Raw Line</th>
             </tr>
           </thead>
           <tbody>
@@ -85,11 +85,7 @@
                     </td>
                   }
                   <td class="raw-cell-container">
-                    <pre class="raw-cell">
-                      @for (section of getRawFieldSections(i); track section) {
-                        <span class="raw-field-section" [ngStyle]="{ 'background-color': section.color }">{{ section.text }}</span>
-                      }
-                    </pre>
+                    <pre class="raw-cell">{{ csvLines[i + 1] }}</pre>
                   </td>
                 </tr>
               }

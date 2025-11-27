@@ -27,14 +27,14 @@ export function parseCsvLineWithErrors(
   let inQuotes = false;
   let fieldQuoted = false;
   let current = '';
+  let rawCurrent = ''; // Track the raw field including quotes
   let fieldStart = 0;
 
   while (i <= line.length) {
     let char = line[i];
     if (i === line.length || (char === ',' && !inQuotes)) {
       // End of field
-      let originalField = line.slice(fieldStart, i);
-      originalFields.push(originalField);
+      originalFields.push(rawCurrent);
 
       // Unescape quoted field if needed
       let value = current;
@@ -49,6 +49,7 @@ export function parseCsvLineWithErrors(
 
       // Reset for next field
       current = '';
+      rawCurrent = '';
       fieldQuoted = false;
       inQuotes = false;
       fieldStart = i + 1;
@@ -58,11 +59,13 @@ export function parseCsvLineWithErrors(
     }
 
     if (char === '"') {
+      rawCurrent += char;
       if (!inQuotes && current === '') {
         inQuotes = true;
         fieldQuoted = true;
       } else if (inQuotes && line[i + 1] === '"') {
         current += '"';
+        rawCurrent += '"';
         i++; // skip escaped quote
       } else if (inQuotes) {
         inQuotes = false;
@@ -76,6 +79,7 @@ export function parseCsvLineWithErrors(
       }
     } else {
       current += char;
+      rawCurrent += char;
     }
     i++;
   }
