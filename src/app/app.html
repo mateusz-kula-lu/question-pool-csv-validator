@@ -23,66 +23,80 @@
     <div class="results-bar">
       <span>CSV Validation Results</span>
       <div>
-        <mat-icon style="color: navy;" (click)="closeResults()">reply all</mat-icon>
+        <mat-icon style="color: navy;" (click)="closeResults()">reply_all</mat-icon>
       </div>
     </div>
     
+    <div class="results-table-container">
+      @if(hasErrors) {
+        <div class="error-summary">
+          <mat-icon [ngStyle]="{'color':'red'}">error</mat-icon>
+          <span>Validation completed with errors. Please review the issues below.</span>
+        </div>
+      } @else {
+        <div class="success-summary">
+          <mat-icon [ngStyle]="{'color':'green'}">check_circle</mat-icon>
+          <span>Validation completed successfully. No issues found!</span>
+        </div>
+      }
 
-      <div class="results-table-container">
-        @if(hasErrors) {
-      <div class="error-summary">
-        <mat-icon [ngStyle]="{'color':'red'}">error</mat-icon>
-        <span>Validation completed with errors. Please review the issues below.</span>
-      </div>
-    } @else {
-      <div class="success-summary">
-        <mat-icon [ngStyle]="{'color':'green'}">check_circle</mat-icon>
-        <span>Validation completed successfully. No issues found!</span>
-      </div>
-    }
+      @if(hasErrors) {
+        @if (getIssuesForLine(1).length > 0) {
+          <div class="header-errors">
+            <h3>Header Errors (Line 1)</h3>
+            <ul>
+              @for (issue of getIssuesForLine(1); track issue) {
+                <li>
+                  <span class="field-error">{{ issue.error }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        }
 
-    @if(hasErrors) {
-    
         <table class="results-table">
-        <thead>
-          <tr>
-            <th>Line #</th>
-            <th>Issues</th>
-            @for (fieldName of header; track fieldName) {
-              <th>{{ fieldName }}</th>
-            }
-            <th class="raw-header">Raw</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (line of csvLines.slice(1); let i = $index; track i) {
-            @if (getIssuesForLine(i + 2).length > 0) {
-              <tr>
-                <td>{{ i + 2 }}</td>
-                <td>
-                  <ul>
-                    @for (issue of getIssuesForLine(i + 2); track issue) {
-                      <li>
-                        <span class="field-error">{{ issue.error }}</span>
-                      </li>
-                    }
-                  </ul>
-                </td>
-                @for (fieldName of header; let j = $index; track j) {
-                  <td [class.field-error-cell]="hasFieldError(i + 2, j)">
-                    <pre class="field-pre">{{ originalFieldsRows[i + 1][j] }}</pre>
+          <thead>
+            <tr>
+              <th>Line #</th>
+              <th>Issues</th>
+              @for (fieldName of header; track fieldName) {
+                <th>{{ fieldName }}</th>
+              }
+              <th class="raw-header">Raw</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of csvLines.slice(1); let i = $index; track i) {
+              @if (getIssuesForLine(i + 2).length > 0) {
+                <tr>
+                  <td>{{ i + 2 }}</td>
+                  <td>
+                    <ul>
+                      @for (issue of getIssuesForLine(i + 2); track issue) {
+                        <li>
+                          <span class="field-error">{{ issue.error }}</span>
+                        </li>
+                      }
+                    </ul>
                   </td>
-                }
-                <td class="raw-cell-container">
-                  <pre class="raw-cell">{{ line }}</pre>
-                </td>
-              </tr>
+                  @for (fieldName of header; let j = $index; track j) {
+                    <td [class.field-error-cell]="hasFieldError(i + 2, j)">
+                      <pre class="field-pre">{{ originalFieldsRows[i + 1][j] }}</pre>
+                    </td>
+                  }
+                  <td class="raw-cell-container">
+                    <pre class="raw-cell">
+                      @for (section of getRawFieldSections(i); track section) {
+                        <span class="raw-field-section" [ngStyle]="{ 'background-color': section.color }">{{ section.text }}</span>
+                      }
+                    </pre>
+                  </td>
+                </tr>
+              }
             }
-          }
-        </tbody>
-      </table>
-    }
-      </div>
-
+          </tbody>
+        </table>
+      }
+    </div>
   </div>
 }

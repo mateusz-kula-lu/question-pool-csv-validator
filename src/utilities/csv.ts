@@ -114,23 +114,137 @@ export function validateCsvString(csvContent: string): CsvFieldValidationError[]
       expectedNumFields = row.length;
       header = row;
       headerChecked = true;
+
+      // Validate header structure
+      if (row.length < 2) {
+        errors.push({
+          line: 1,
+          field: 0,
+          error: '[Header] Must have at least "question pool" and "question text" fields'
+        });
+      } else {
+        // First field must be "question pool"
+        if (row[0].trim().toLowerCase() !== 'question pool') {
+          errors.push({
+            line: 1,
+            field: 1,
+            error: '[Header] First field must be "question pool"'
+          });
+        }
+
+        // Second field must be "question text"
+        if (row[1].trim().toLowerCase() !== 'question text') {
+          errors.push({
+            line: 1,
+            field: 2,
+            error: '[Header] Second field must be "question text"'
+          });
+        }
+
+        // Build maps for choice{x}, correct{x}, and feedback{x}
+        choiceFieldMap = {};
+        correctFieldMap = {};
+        const feedbackFieldMap: Record<number, number> = {};
+        
+        const choiceNumbers = new Set<number>();
+        const correctNumbers = new Set<number>();
+        const feedbackNumbers = new Set<number>();
+
+        for (let j = 2; j < row.length; j++) {
+          const fieldName = row[j].trim();
+          
+          const matchChoice = fieldName.match(/^choice(\d+)$/i);
+          if (matchChoice) {
+            const num = parseInt(matchChoice[1], 10);
+            choiceFieldMap[num] = j;
+            choiceNumbers.add(num);
+          }
+
+          const matchCorrect = fieldName.match(/^correct(\d+)$/i);
+          if (matchCorrect) {
+            const num = parseInt(matchCorrect[1], 10);
+            correctFieldMap[num] = j;
+            correctNumbers.add(num);
+          }
+
+          const matchFeedback = fieldName.match(/^feedback(\d+)$/i);
+          if (matchFeedback) {
+            const num = parseInt(matchFeedback[1], 10);
+            feedbackFieldMap[num] = j;
+            feedbackNumbers.add(num);
+          }
+        }
+
+        // Validate consecutive numbering and count matching
+        const choiceCount = choiceNumbers.size;
+        const correctCount = correctNumbers.size;
+        const feedbackCount = feedbackNumbers.size;
+
+        // Check if there are at least 2 choice/correct/feedback fields
+        if (choiceCount < 2) {
+          errors.push({
+            line: 1,
+            field: 0,
+            error: `[Header] Must have at least 2 choice{x} fields (found ${choiceCount})`
+          });
+        }
+
+        // Check if choice numbers are consecutive starting from 1
+        if (choiceCount > 0) {
+          const sortedChoices = Array.from(choiceNumbers).sort((a, b) => a - b);
+          for (let n = 1; n <= choiceCount; n++) {
+            if (!choiceNumbers.has(n)) {
+              errors.push({
+                line: 1,
+                field: 0,
+                error: `[Header] Missing choice${n} field - choice fields must be consecutively numbered starting from 1`
+              });
+            }
+          }
+        }
+
+        // Check if correct numbers match choice numbers
+        if (correctCount !== choiceCount) {
+          errors.push({
+            line: 1,
+            field: 0,
+            error: `[Header] Number of correct{x} fields (${correctCount}) must match number of choice{x} fields (${choiceCount})`
+          });
+        } else {
+          for (const num of choiceNumbers) {
+            if (!correctNumbers.has(num)) {
+              errors.push({
+                line: 1,
+                field: 0,
+                error: `[Header] Missing correct${num} field to match choice${num}`
+              });
+            }
+          }
+        }
+
+        // Check if feedback numbers match choice numbers
+        if (feedbackCount !== choiceCount) {
+          errors.push({
+            line: 1,
+            field: 0,
+            error: `[Header] Number of feedback{x} fields (${feedbackCount}) must match number of choice{x} fields (${choiceCount})`
+          });
+        } else {
+          for (const num of choiceNumbers) {
+            if (!feedbackNumbers.has(num)) {
+              errors.push({
+                line: 1,
+                field: 0,
+                error: `[Header] Missing feedback${num} field to match choice${num}`
+              });
+            }
+          }
+        }
+      }
+
       correctFieldIndexes = header
         .map((name, idx) => /^correct\d+$/i.test(name.trim()) ? idx : -1)
         .filter(idx => idx !== -1);
-
-      // Build maps for choice{x} and correct{x}
-      choiceFieldMap = {};
-      correctFieldMap = {};
-      header.forEach((name, idx) => {
-        const matchChoice = name.trim().match(/^choice(\d+)$/i);
-        if (matchChoice) {
-          choiceFieldMap[parseInt(matchChoice[1], 10)] = idx;
-        }
-        const matchCorrect = name.trim().match(/^correct(\d+)$/i);
-        if (matchCorrect) {
-          correctFieldMap[parseInt(matchCorrect[1], 10)] = idx;
-        }
-      });
     } else if (row.length !== expectedNumFields) {
       errors.push({
         line: i + 1,
@@ -150,7 +264,7 @@ export function validateCsvString(csvContent: string): CsvFieldValidationError[]
       ) {
         errors.push({
           line: i + 1,
-          field: j + 1, // 1-based index
+          field: j + 1,
           error: `[${fieldName}] Field containing comma, CR, LF, or double quote must be quoted`
         });
       }
